@@ -54,7 +54,7 @@ public final class CommandSettingsStore {
             Object loaded = yaml.load(input);
             if (!(loaded instanceof Map<?, ?> root)) {
                 return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST, DEFAULT_BLOCKED_PATTERNS,
-                        false, DEFAULT_SENSITIVE_COMMANDS, DEFAULT_SENSITIVE_KEYWORDS);
+                        false, DEFAULT_SENSITIVE_COMMANDS, DEFAULT_SENSITIVE_KEYWORDS, false, false);
             }
             Set<String> dangerous = parseList(root.get("dangerous"));
             if (dangerous.isEmpty()) {
@@ -74,7 +74,9 @@ public final class CommandSettingsStore {
                     parseList(root.get("blocked-patterns")),
                     readBoolean(root.get("notify-all-admin-commands"), false),
                     sensitiveCommands,
-                    sensitiveKeywords
+                    sensitiveKeywords,
+                    readBoolean(root.get("notify-player-commands"), false),
+                    readBoolean(root.get("notify-join-leave"), false)
             );
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load " + this.settingsFile, ex);
@@ -89,6 +91,8 @@ public final class CommandSettingsStore {
         root.put("notify-all-admin-commands", settings.notifyAllAdminCommands());
         root.put("sensitive-commands", settings.sensitiveCommands().stream().sorted().toList());
         root.put("sensitive-keywords", settings.sensitiveKeywords().stream().sorted().toList());
+        root.put("notify-player-commands", settings.notifyPlayerCommands());
+        root.put("notify-join-leave", settings.notifyJoinLeave());
         writeYaml(root);
     }
 
@@ -117,6 +121,8 @@ public final class CommandSettingsStore {
         root.put("notify-all-admin-commands", false);
         root.put("sensitive-commands", DEFAULT_SENSITIVE_COMMANDS.stream().sorted().toList());
         root.put("sensitive-keywords", DEFAULT_SENSITIVE_KEYWORDS.stream().sorted().toList());
+        root.put("notify-player-commands", false);
+        root.put("notify-join-leave", false);
         writeYaml(root);
     }
 

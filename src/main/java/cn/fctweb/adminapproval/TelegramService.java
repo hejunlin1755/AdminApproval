@@ -99,6 +99,26 @@ public final class TelegramService {
         sendMessageAsync("🔔 管理员命令\n玩家: " + playerName + "\n命令: " + redactedCommand);
     }
 
+    public void notifyPlayerCommand(String playerName, String redactedCommand) {
+        if (!this.enabled || playerName == null || redactedCommand == null) {
+            return;
+        }
+        sendMessageAsync("⚡ 玩家命令\n玩家: " + playerName + "\n命令: " + redactedCommand);
+    }
+
+    public void notifyJoinLeave(boolean joined, String playerName, int onlineCount) {
+        if (!this.enabled || playerName == null) {
+            return;
+        }
+        sendMessageAsync(formatJoinLeave(joined, playerName, onlineCount));
+    }
+
+    public static String formatJoinLeave(boolean joined, String playerName, int onlineCount) {
+        return (joined ? "🟢 玩家 " : "🔴 玩家 ") + playerName
+                + (joined ? " 加入了游戏" : " 退出了游戏")
+                + "（当前在线 " + onlineCount + " 人）";
+    }
+
     public static String formatApprovalRequest(ApprovalRequest request) {
         return "[AdminApproval] 新的审批请求\n"
                 + "编号:#" + request.id() + "\n"

@@ -230,6 +230,18 @@ public final class ScenarioCheck {
                         "/custom --pass abc", sensitiveCommands, sensitiveKeywords)),
                 TelegramService.redactCommand("/custom --pass abc", sensitiveCommands, sensitiveKeywords));
 
+        // ---------- 普通玩家命令 + 进服/退服提醒 ----------
+        check("进出服: 加入提醒格式",
+                "🟢 玩家 Steve 加入了游戏（当前在线 3 人）".equals(TelegramService.formatJoinLeave(true, "Steve", 3)),
+                TelegramService.formatJoinLeave(true, "Steve", 3));
+        check("进出服: 退出提醒格式",
+                "🔴 玩家 Steve 退出了游戏（当前在线 2 人）".equals(TelegramService.formatJoinLeave(false, "Steve", 2)),
+                TelegramService.formatJoinLeave(false, "Steve", 2));
+        check("玩家命令: /login 打码后不泄露密码",
+                "/login ***".equals(TelegramService.redactCommand(
+                        "/login hunter2", sensitiveCommands, sensitiveKeywords)),
+                TelegramService.redactCommand("/login hunter2", sensitiveCommands, sensitiveKeywords));
+
         System.out.println(failures == 0 ? "ALL SCENARIOS PASSED" : failures + " CHECK(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

@@ -19,50 +19,69 @@ public final class DangerousCommandListener implements Listener {
     private final Supplier<Collection<? extends Player>> onlinePlayers;
     private final TelegramService telegramService;
     private final boolean notifyAllAdminCommands;
+    private final boolean notifyPlayerCommands;
     private final Set<String> sensitiveCommands;
     private final Set<String> sensitiveKeywords;
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl) {
         this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, TelegramService.disabled(),
-                false, Set.of(), Set.of());
+                false, false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     Supplier<Collection<? extends Player>> onlinePlayers) {
         this(policy, requestStore, accessControl, onlinePlayers, TelegramService.disabled(),
-                false, Set.of(), Set.of());
+                false, false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     TelegramService telegramService) {
         this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService,
-                false, Set.of(), Set.of());
+                false, false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     Supplier<Collection<? extends Player>> onlinePlayers,
                                     TelegramService telegramService) {
         this(policy, requestStore, accessControl, onlinePlayers, telegramService,
-                false, Set.of(), Set.of());
+                false, false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     TelegramService telegramService, boolean notifyAllAdminCommands,
                                     Set<String> sensitiveCommands, Set<String> sensitiveKeywords) {
         this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService,
-                notifyAllAdminCommands, sensitiveCommands, sensitiveKeywords);
+                notifyAllAdminCommands, false, sensitiveCommands, sensitiveKeywords);
+    }
+
+    public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                                    TelegramService telegramService, boolean notifyAllAdminCommands,
+                                    boolean notifyPlayerCommands, Set<String> sensitiveCommands,
+                                    Set<String> sensitiveKeywords) {
+        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService,
+                notifyAllAdminCommands, notifyPlayerCommands, sensitiveCommands, sensitiveKeywords);
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     Supplier<Collection<? extends Player>> onlinePlayers,
                                     TelegramService telegramService, boolean notifyAllAdminCommands,
                                     Set<String> sensitiveCommands, Set<String> sensitiveKeywords) {
+        this(policy, requestStore, accessControl, onlinePlayers, telegramService,
+                notifyAllAdminCommands, false, sensitiveCommands, sensitiveKeywords);
+    }
+
+    public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                                    Supplier<Collection<? extends Player>> onlinePlayers,
+                                    TelegramService telegramService, boolean notifyAllAdminCommands,
+                                    boolean notifyPlayerCommands, Set<String> sensitiveCommands,
+                                    Set<String> sensitiveKeywords) {
         this.policy = policy;
         this.requestStore = requestStore;
         this.accessControl = accessControl;
         this.onlinePlayers = onlinePlayers == null ? Bukkit::getOnlinePlayers : onlinePlayers;
         this.telegramService = telegramService == null ? TelegramService.disabled() : telegramService;
         this.notifyAllAdminCommands = notifyAllAdminCommands;
+        this.notifyPlayerCommands = notifyPlayerCommands;
         this.sensitiveCommands = sensitiveCommands == null ? Set.of() : sensitiveCommands;
         this.sensitiveKeywords = sensitiveKeywords == null ? Set.of() : sensitiveKeywords;
     }
@@ -107,11 +126,12 @@ public final class DangerousCommandListener implements Listener {
     }
 
     private void notifyAdminCommand(PlayerCommandPreprocessEvent event, String message) {
-        if (!this.notifyAllAdminCommands) {
+        Player player = event.getPlayer();
+        if (this.accessControl.isOwner(player)) {
             return;
         }
-        Player player = event.getPlayer();
-        if (!this.accessControl.isAdmin(player) || this.accessControl.isOwner(player)) {
+        boolean admin = this.accessControl.isAdmin(player);
+        if (!this.notifyPlayerCommands && !(this.notifyAllAdminCommands && admin)) {
             return;
         }
         String label = labelOf(message);
@@ -121,7 +141,11 @@ public final class DangerousCommandListener implements Listener {
             return;
         }
         String redacted = TelegramService.redactCommand(message, this.sensitiveCommands, this.sensitiveKeywords);
-        this.telegramService.notifyAdminCommand(player.getName(), redacted);
+        if (admin && this.notifyAllAdminCommands) {
+            this.telegramService.notifyAdminCommand(player.getName(), redacted);
+        } else {
+            this.telegramService.notifyPlayerCommand(player.getName(), redacted);
+        }
     }
 
     private String labelOf(String commandLine) {

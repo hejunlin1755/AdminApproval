@@ -56,3 +56,9 @@ sensitive-keywords:
   - token
   - 密码
   - 密钥
+
+# 普通玩家的命令也推送到 Telegram（默认关闭，注意可能很吵）
+notify-player-commands: false
+
+# 玩家加入/退出游戏推送到 Telegram（默认关闭）
+notify-join-leave: false

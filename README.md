@@ -11,6 +11,7 @@ Minecraft Java Edition 26.1.2 / Paper 26.1.2 服务器插件。
 - **命令白名单系统**：服主可通过 `/adminapproval whitelist add|remove|list` 动态管理免审批命令，数据保存在 `plugins/AdminApproval/data.yml`，重启后保留；支持 `/fill` 与 `minecraft:fill` 两种写法。
 - **FAWE 禁用模式**：`command-settings.yml` 的 `blocked-patterns` 可拦截特定危险填充（如 `//set tnt`、`//replace tnt`），命中时自动创建审批请求，管理员不能直接执行；`//set stone`、`//set grass` 等正常建筑不受影响。
 - **管理员命令上报**：开启 `notify-all-admin-commands` 后，管理员执行的每条命令都会推送到 Telegram；`sensitive-commands` / `sensitive-keywords` 会自动打码密码类参数（如 `/login ***`、`/changepassword ***`），绝不泄露。
+- **玩家命令与进出服提醒**：`notify-player-commands` 可把普通玩家的命令也推送到 Telegram；`notify-join-leave` 会在玩家加入/退出游戏时提醒（含当前在线人数）。注意玩家命令提醒可能较吵，按需开关。
 - **防绕过**：管理员不能批准自己的请求；`/minecraft:give` 前缀无法绕过拦截；只有腐竹 UUID 能执行 `/adminapproval whitelist`。
 - **配置免改代码**：`command-settings.yml` 可调整 `dangerous`（危险命令）与 `whitelist`（初始免审批命令）列表。
 
@@ -107,6 +108,12 @@ sensitive-keywords:
   - token
   - 密码
   - 密钥
+
+# 普通玩家的命令也推送到 Telegram（默认关闭，注意可能很吵）
+notify-player-commands: false
+
+# 玩家加入/退出游戏推送到 Telegram（默认关闭）
+notify-join-leave: false
 ```
 
 ### plugins/AdminApproval/data.yml
