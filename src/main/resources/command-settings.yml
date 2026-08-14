@@ -1,0 +1,19 @@
+# 危险命令：管理员执行这些命令时需要提交审批（可自行增删，重启后生效）
+dangerous:
+  - op
+  - deop
+  - stop
+  - restart
+  - reload
+  - ban
+  - pardon
+  - whitelist
+  - give
+  - item
+  - execute
+
+# 免审批命令白名单初始值：首次启动写入 data.yml 后，以 /adminapproval whitelist 管理
+whitelist:
+  - fill
+  - clone
+  - setblock

@@ -1,0 +1,40 @@
+name: AdminApproval
+version: '1.0.0'
+main: cn.fctweb.adminapproval.AdminApprovalPlugin
+api-version: '1.21'
+authors: [fctweb]
+description: 危险命令审批插件（服主身份 + 管理员审批 + 免审批白名单）
+
+commands:
+  adminrequest:
+    description: 提交危险命令审批请求
+    usage: /adminrequest <危险命令...>
+  adminapprove:
+    description: 批准审批请求
+    usage: /adminapprove <审批编号>
+  adminreject:
+    description: 拒绝审批请求
+    usage: /adminreject <审批编号>
+  adminrequests:
+    description: 查看待审批请求
+    usage: /adminrequests
+  adminhistory:
+    description: 查看审批历史
+    usage: /adminhistory [数量]
+  adminapproval:
+    description: 管理免审批命令白名单（仅服主可用）
+    usage: /adminapproval whitelist <add|remove|list> [命令]
+
+permissions:
+  adminapproval.request:
+    description: 允许提交危险命令审批请求
+    default: false
+  adminapproval.approve:
+    description: 允许批准或拒绝审批请求（服主不受此限制）
+    default: false
+  adminapproval.bypass:
+    description: 绕过危险命令审批
+    default: false
+  adminapproval.manage:
+    description: 管理免审批白名单（代码内强制仅服主UUID可用）
+    default: false
