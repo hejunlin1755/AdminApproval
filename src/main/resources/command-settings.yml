@@ -11,6 +11,12 @@ dangerous:
   - give
   - item
   - execute
+  - gamemode
+  - gm
+  - gmc
+  - gms
+  - gma
+  - gmsp
 
 # 免审批命令白名单初始值：首次启动写入 data.yml 后，以 /adminapproval whitelist 管理
 whitelist:

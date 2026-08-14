@@ -124,7 +124,25 @@ public final class TelegramService {
                 + "编号:#" + request.id() + "\n"
                 + "申请人:" + request.requesterName() + "\n"
                 + "命令:" + request.command() + "\n"
-                + "点击下方按钮处理，或回复 /approve " + request.id() + " / /reject " + request.id();
+                + "点击下方按钮处理，或回复 /approve " + request.id() + " / /reject " + request.id()
+                + "；想直接执行服务器命令可回复 /cmd <命令>";
+    }
+
+    /**
+     * 解析「直接执行命令」指令：/cmd <命令>、/run <命令>、/console <命令>，返回待执行的命令；非指令返回 null。
+     */
+    public static String parseCommandInvocation(String text) {
+        if (text == null) {
+            return null;
+        }
+        String trimmed = text.trim();
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("/cmd ") || lower.startsWith("/run ") || lower.startsWith("/console ")) {
+            int space = trimmed.indexOf(' ');
+            String command = trimmed.substring(space + 1).trim();
+            return command.isEmpty() ? null : command;
+        }
+        return null;
     }
 
     /**
@@ -403,7 +421,13 @@ public final class TelegramService {
             sendMessageAsync(rejectWithMessage(id));
             return;
         }
-        sendMessageAsync("用法: 点审批消息下方的按钮，或回复 /approve <编号> / /reject <编号>");
+        String command = parseCommandInvocation(text);
+        if (command != null) {
+            boolean ok = this.dispatcher.apply(command);
+            sendMessageAsync(ok ? "✅ 已由控制台执行: /" + command : "❌ 命令执行失败: /" + command);
+            return;
+        }
+        sendMessageAsync("用法: 点审批按钮，或 /approve <编号> / /reject <编号>；直接执行服务器命令用 /cmd <命令>");
     }
 
     private int parseIdPart(String data) {

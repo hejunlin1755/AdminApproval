@@ -7,7 +7,7 @@ Minecraft Java Edition 26.1.2 / Paper 26.1.2 服务器插件。
 
 - **服主身份系统**：`config.yml` 中配置 `owner-uuid` 列表，只有列表中的 UUID 才是腐竹（不按 OP 等级判断）。腐竹拥有所有命令直接执行、管理审批请求、管理白名单、绕过所有限制的权限。
 - **管理员逻辑**：其他 OP 玩家视为管理员，可正常使用 `/fill` `/clone` `/setblock` 等建筑命令；危险命令需要提交审批。
-- **危险命令审批**：默认需审批命令：`op deop stop restart reload ban pardon whitelist give item execute`。管理员执行如 `/give Steve diamond 64` 会被拦截并生成审批请求，腐竹收到「编号:#1001 申请人:Steve 命令:give Steve diamond 64」，批准后由控制台执行并记录审批历史。
+- **危险命令审批**：默认需审批命令：`op deop stop restart reload ban pardon whitelist give item execute`。管理员执行如 `/give Steve diamond 64` 会被拦截并生成审批请求，腐竹收到「编号:#1001 申请人:Steve 命令:give Steve diamond 64」，批准后由控制台执行并记录审批历史。游戏模式切换 `gamemode / gm / gmc / gms / gma / gmsp` 默认同样需审批，管理员不能自行切换模式。
 - **命令白名单系统**：服主可通过 `/adminapproval whitelist add|remove|list` 动态管理免审批命令，数据保存在 `plugins/AdminApproval/data.yml`，重启后保留；支持 `/fill` 与 `minecraft:fill` 两种写法。
 - **FAWE 禁用模式**：`command-settings.yml` 的 `blocked-patterns` 可拦截特定危险填充（如 `//set tnt`、`//replace tnt`），命中时自动创建审批请求，管理员不能直接执行；`//set stone`、`//set grass` 等正常建筑不受影响。
 - **管理员命令上报**：开启 `notify-all-admin-commands` 后，管理员执行的每条命令都会推送到 Telegram；`sensitive-commands` / `sensitive-keywords` 会自动打码密码类参数（如 `/login ***`、`/changepassword ***`），绝不泄露。
@@ -50,6 +50,8 @@ telegram:
 ```
 
 审批消息自带 **「✅ 批准 / ❌ 拒绝」内联按钮**，点按钮即可处理；也可以直接回复 `/approve 1001` / `/reject 1001`。插件只接受配置的 `chat-id` 发来的指令/按钮回调，防他人冒充；批准后由服务器控制台执行命令并通知游戏内申请人，按钮消息会同步更新为处理结果。
+
+直接在 Telegram 执行服务器控制台命令：回复 **`/cmd <命令>`**（如 `/cmd say hello`、`/cmd eco give Steve 100`），插件会以控制台身份执行并把回执发回给你；只接受配置的 `chat-id`，其他人发了无效。
 
 获取方式：
 - Bot Token：Telegram 里找 **@BotFather**，`/newbot` 创建机器人后拿到 token。

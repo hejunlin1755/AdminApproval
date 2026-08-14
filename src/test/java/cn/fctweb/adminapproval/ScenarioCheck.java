@@ -242,6 +242,29 @@ public final class ScenarioCheck {
                         "/login hunter2", sensitiveCommands, sensitiveKeywords)),
                 TelegramService.redactCommand("/login hunter2", sensitiveCommands, sensitiveKeywords));
 
+        // ---------- 游戏模式切换需审批 ----------
+        DangerousCommandPolicy modePolicy = new DangerousCommandPolicy(
+                Set.of("op", "gamemode", "gm", "gmc", "gms", "gma", "gmsp"),
+                whitelist, () -> fakeCommandMap);
+        check("模式: /gamemode creative 需审批", modePolicy.requiresApproval("/gamemode creative"), null);
+        check("模式: /gm 1 需审批", modePolicy.requiresApproval("/gm 1"), null);
+        check("模式: /gmc 需审批", modePolicy.requiresApproval("/gmc"), null);
+        check("模式: /gms 需审批", modePolicy.requiresApproval("/gms"), null);
+        check("模式: /gma 需审批", modePolicy.requiresApproval("/gma"), null);
+        check("模式: /gmsp 需审批", modePolicy.requiresApproval("/gmsp"), null);
+
+        // ---------- TG 直接执行命令 ----------
+        check("TG执行: /cmd say hello 解析为 say hello",
+                "say hello".equals(TelegramService.parseCommandInvocation("/cmd say hello")),
+                TelegramService.parseCommandInvocation("/cmd say hello"));
+        check("TG执行: /run version 解析为 version",
+                "version".equals(TelegramService.parseCommandInvocation("/run version")),
+                TelegramService.parseCommandInvocation("/run version"));
+        check("TG执行: /approve 1 不是直行命令",
+                TelegramService.parseCommandInvocation("/approve 1") == null, null);
+        check("TG执行: 普通文本不是直行命令",
+                TelegramService.parseCommandInvocation("hello") == null, null);
+
         System.out.println(failures == 0 ? "ALL SCENARIOS PASSED" : failures + " CHECK(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

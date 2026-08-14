@@ -20,7 +20,8 @@ import java.util.Set;
 
 public final class CommandSettingsStore {
     public static final Set<String> DEFAULT_DANGEROUS = Set.of(
-            "op", "deop", "stop", "restart", "reload", "ban", "pardon", "whitelist", "give", "item", "execute"
+            "op", "deop", "stop", "restart", "reload", "ban", "pardon", "whitelist", "give", "item", "execute",
+            "gamemode", "gm", "gmc", "gms", "gma", "gmsp"
     );
     public static final Set<String> DEFAULT_WHITELIST = Set.of("fill", "clone", "setblock");
     public static final Set<String> DEFAULT_BLOCKED_PATTERNS = Set.of(
