@@ -4,4 +4,12 @@ import org.bukkit.plugin.PluginManager;
 
 public interface Server {
     PluginManager getPluginManager();
+
+    int getMaxPlayers();
+
+    String getVersion();
+
+    double[] getTPS();
+
+    long getUptime();
 }

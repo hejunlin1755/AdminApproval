@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public final class AdminApprovalPlugin extends JavaPlugin {
     private RequestStore requestStore;
@@ -15,6 +16,7 @@ public final class AdminApprovalPlugin extends JavaPlugin {
     private DangerousCommandPolicy policy;
     private AccessControl accessControl;
     private TelegramService telegramService;
+    private ConsoleWatchService consoleWatchService;
 
     @Override
     public void onEnable() {
@@ -59,6 +61,20 @@ public final class AdminApprovalPlugin extends JavaPlugin {
         this.getServer().getPluginManager().registerEvents(
                 new PlayerActivityListener(this.telegramService, settings.notifyJoinLeave()), this);
 
+        List<Pattern> antiCheatPatterns = new java.util.ArrayList<>();
+        for (String pattern : settings.antiCheatPatterns()) {
+            try {
+                antiCheatPatterns.add(Pattern.compile(pattern));
+            } catch (Exception ignored) {
+            }
+        }
+        Path logFile = this.getDataFolder().toPath().getParent().getParent().resolve("logs/latest.log");
+        this.consoleWatchService = new ConsoleWatchService(
+                logFile, this.telegramService, antiCheatPatterns, 3000, 30, this.getLogger());
+        if (settings.notifyAntiCheat()) {
+            this.consoleWatchService.start();
+        }
+
         registerRequiredCommand("adminrequest", new AdminRequestCommand(this.policy, this.requestStore, this.accessControl, this.telegramService));
         registerRequiredCommand("adminapprove", new AdminApproveCommand(this.requestStore, this.accessControl));
         registerRequiredCommand("adminreject", new AdminRejectCommand(this.requestStore, this.accessControl));
@@ -77,6 +93,9 @@ public final class AdminApprovalPlugin extends JavaPlugin {
     public void onDisable() {
         if (this.telegramService != null) {
             this.telegramService.stop();
+        }
+        if (this.consoleWatchService != null) {
+            this.consoleWatchService.stop();
         }
         saveData();
     }

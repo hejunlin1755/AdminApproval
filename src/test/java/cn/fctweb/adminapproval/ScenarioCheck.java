@@ -265,6 +265,39 @@ public final class ScenarioCheck {
         check("TG执行: 普通文本不是直行命令",
                 TelegramService.parseCommandInvocation("hello") == null, null);
 
+        // ---------- TP 传送需审批 ----------
+        DangerousCommandPolicy tpPolicy = new DangerousCommandPolicy(
+                Set.of("tp", "teleport", "tpo", "tphere", "tppos", "tpall"),
+                whitelist, () -> fakeCommandMap);
+        check("TP: /tp Steve 需审批", tpPolicy.requiresApproval("/tp Steve"), null);
+        check("TP: /tpo Steve 需审批", tpPolicy.requiresApproval("/tpo Steve"), null);
+        check("TP: /tphere Steve 需审批", tpPolicy.requiresApproval("/tphere Steve"), null);
+        check("TP: /tppos 1 2 3 需审批", tpPolicy.requiresApproval("/tppos 1 2 3"), null);
+        check("TP: /tpall 需审批", tpPolicy.requiresApproval("/tpall"), null);
+        check("TP: /tpa 需对方同意，不拦", !tpPolicy.requiresApproval("/tpa Steve"), null);
+        check("TP: /tpahere 需对方同意，不拦", !tpPolicy.requiresApproval("/tpahere Steve"), null);
+
+        // ---------- 服务器状态格式 ----------
+        String status = TelegramService.formatStatus(4, 114514, 19.8, "26.1.2-60",
+                286, 2048, 90061, 2);
+        check("状态: 包含在线", status.contains("在线: 4 / 114514"), status);
+        check("状态: 包含 TPS", status.contains("TPS: 19.8"), status);
+        check("状态: 包含内存", status.contains("286MB / 2048MB"), status);
+        check("状态: 包含运行时长", status.contains("1 天 1 小时"), status);
+        check("状态: 包含待审批", status.contains("待审批: 2"), status);
+
+        // ---------- 反作弊模式编译 ----------
+        boolean patternsCompile = CommandSettingsStore.DEFAULT_ANTICHEAT_PATTERNS.stream()
+                .allMatch(p -> {
+                    try {
+                        java.util.regex.Pattern.compile(p);
+                        return true;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                });
+        check("反作弊: 默认模式均可编译", patternsCompile, null);
+
         System.out.println(failures == 0 ? "ALL SCENARIOS PASSED" : failures + " CHECK(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

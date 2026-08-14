@@ -21,7 +21,8 @@ import java.util.Set;
 public final class CommandSettingsStore {
     public static final Set<String> DEFAULT_DANGEROUS = Set.of(
             "op", "deop", "stop", "restart", "reload", "ban", "pardon", "whitelist", "give", "item", "execute",
-            "gamemode", "gm", "gmc", "gms", "gma", "gmsp"
+            "gamemode", "gm", "gmc", "gms", "gma", "gmsp",
+            "tp", "teleport", "tpo", "tphere", "tppos", "tpall"
     );
     public static final Set<String> DEFAULT_WHITELIST = Set.of("fill", "clone", "setblock");
     public static final Set<String> DEFAULT_BLOCKED_PATTERNS = Set.of(
@@ -35,6 +36,12 @@ public final class CommandSettingsStore {
     );
     public static final Set<String> DEFAULT_SENSITIVE_KEYWORDS = Set.of(
             "password", "pass", "token", "密码", "密钥"
+    );
+    public static final Set<String> DEFAULT_ANTICHEAT_PATTERNS = Set.of(
+            "(?i)\\[Vulcan\\].*(flag|violation)",
+            "(?i)\\[Grim(AC)?\\].*(flag|violation)",
+            "(?i)\\[HeuristicNoFall\\].*(flag|violation)",
+            "(?i)\\[XrayDetect\\].*(detect|violation)"
     );
 
     private final Path settingsFile;
@@ -55,7 +62,8 @@ public final class CommandSettingsStore {
             Object loaded = yaml.load(input);
             if (!(loaded instanceof Map<?, ?> root)) {
                 return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST, DEFAULT_BLOCKED_PATTERNS,
-                        false, DEFAULT_SENSITIVE_COMMANDS, DEFAULT_SENSITIVE_KEYWORDS, false, false);
+                        false, DEFAULT_SENSITIVE_COMMANDS, DEFAULT_SENSITIVE_KEYWORDS, false, false,
+                        false, DEFAULT_ANTICHEAT_PATTERNS);
             }
             Set<String> dangerous = parseList(root.get("dangerous"));
             if (dangerous.isEmpty()) {
@@ -77,7 +85,9 @@ public final class CommandSettingsStore {
                     sensitiveCommands,
                     sensitiveKeywords,
                     readBoolean(root.get("notify-player-commands"), false),
-                    readBoolean(root.get("notify-join-leave"), false)
+                    readBoolean(root.get("notify-join-leave"), false),
+                    readBoolean(root.get("notify-anticheat"), false),
+                    parseList(root.get("anticheat-patterns"))
             );
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load " + this.settingsFile, ex);
@@ -94,6 +104,8 @@ public final class CommandSettingsStore {
         root.put("sensitive-keywords", settings.sensitiveKeywords().stream().sorted().toList());
         root.put("notify-player-commands", settings.notifyPlayerCommands());
         root.put("notify-join-leave", settings.notifyJoinLeave());
+        root.put("notify-anticheat", settings.notifyAntiCheat());
+        root.put("anticheat-patterns", settings.antiCheatPatterns().stream().sorted().toList());
         writeYaml(root);
     }
 
@@ -124,6 +136,8 @@ public final class CommandSettingsStore {
         root.put("sensitive-keywords", DEFAULT_SENSITIVE_KEYWORDS.stream().sorted().toList());
         root.put("notify-player-commands", false);
         root.put("notify-join-leave", false);
+        root.put("notify-anticheat", false);
+        root.put("anticheat-patterns", DEFAULT_ANTICHEAT_PATTERNS.stream().sorted().toList());
         writeYaml(root);
     }
 

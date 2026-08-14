@@ -17,6 +17,12 @@ dangerous:
   - gms
   - gma
   - gmsp
+  - tp
+  - teleport
+  - tpo
+  - tphere
+  - tppos
+  - tpall
 
 # 免审批命令白名单初始值：首次启动写入 data.yml 后，以 /adminapproval whitelist 管理
 whitelist:
@@ -68,3 +74,11 @@ notify-player-commands: false
 
 # 玩家加入/退出游戏推送到 Telegram（默认关闭）
 notify-join-leave: false
+
+# 反作弊告警推送到 Telegram（默认关闭）：匹配控制台日志中的反作弊 flag/violation
+notify-anticheat: false
+anticheat-patterns:
+  - "(?i)\\[Vulcan\\].*(flag|violation)"
+  - "(?i)\\[Grim(AC)?\\].*(flag|violation)"
+  - "(?i)\\[HeuristicNoFall\\].*(flag|violation)"
+  - "(?i)\\[XrayDetect\\].*(detect|violation)"

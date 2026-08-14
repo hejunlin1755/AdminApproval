@@ -36,6 +36,7 @@ public final class TelegramService {
     private final Function<UUID, Player> playerLookup;
     private final Logger logger;
     private final HttpClient http;
+    private final long startedAt = System.currentTimeMillis();
 
     private volatile boolean running;
     private Thread pollerThread;
@@ -113,6 +114,13 @@ public final class TelegramService {
         sendMessageAsync(formatJoinLeave(joined, playerName, onlineCount));
     }
 
+    public void notifyAntiCheat(String line) {
+        if (!this.enabled || line == null) {
+            return;
+        }
+        sendMessageAsync("🚨 反作弊检测\n" + line);
+    }
+
     public static String formatJoinLeave(boolean joined, String playerName, int onlineCount) {
         return (joined ? "🟢 玩家 " : "🔴 玩家 ") + playerName
                 + (joined ? " 加入了游戏" : " 退出了游戏")
@@ -157,12 +165,62 @@ public final class TelegramService {
         JsonArray row = new JsonArray();
         row.add(button("✅ 批准 #" + request.id(), "approve:" + request.id()));
         row.add(button("❌ 拒绝 #" + request.id(), "reject:" + request.id()));
+        row.add(button("📊 服务器状态", "status"));
         rows.add(row);
 
         JsonObject keyboard = new JsonObject();
         keyboard.add("inline_keyboard", rows);
         payload.add("reply_markup", keyboard);
         return payload;
+    }
+
+    public void sendStatus() {
+        if (!this.enabled) {
+            return;
+        }
+        sendMessageAsync(buildStatusMessage());
+    }
+
+    public String buildStatusMessage() {
+        int online = org.bukkit.Bukkit.getOnlinePlayers().size();
+        int max = org.bukkit.Bukkit.getServer().getMaxPlayers();
+        double tps = -1;
+        try {
+            double[] values = org.bukkit.Bukkit.getServer().getTPS();
+            if (values != null && values.length > 0) {
+                tps = values[0];
+            }
+        } catch (Exception ignored) {
+        }
+        String version = org.bukkit.Bukkit.getServer().getVersion();
+        long used = (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / 1048576;
+        long maxMemory = Runtime.getRuntime().maxMemory() / 1048576;
+        long uptimeSeconds = (System.currentTimeMillis() - this.startedAt) / 1000;
+        int pending = this.requestStore == null ? 0 : this.requestStore.listPending().size();
+        return formatStatus(online, max, tps, version, used, maxMemory, uptimeSeconds, pending);
+    }
+
+    public static String formatStatus(int online, int max, double tps, String version,
+                                      long usedMb, long maxMb, long uptimeSeconds, int pending) {
+        String tpsText = tps < 0 ? "?" : String.format(Locale.ROOT, "%.1f", tps);
+        long days = uptimeSeconds / 86400;
+        long hours = (uptimeSeconds % 86400) / 3600;
+        long minutes = (uptimeSeconds % 3600) / 60;
+        String uptime;
+        if (days > 0) {
+            uptime = days + " 天 " + hours + " 小时";
+        } else if (hours > 0) {
+            uptime = hours + " 小时 " + minutes + " 分";
+        } else {
+            uptime = minutes + " 分钟";
+        }
+        return "📊 服务器状态\n"
+                + "● 在线: " + online + " / " + max + "\n"
+                + "● TPS: " + tpsText + "\n"
+                + "● 版本: " + version + "\n"
+                + "● 内存: " + usedMb + "MB / " + maxMb + "MB\n"
+                + "● 运行: " + uptime + "\n"
+                + "● 待审批: " + pending;
     }
 
     private static JsonObject button(String text, String callbackData) {
@@ -402,6 +460,9 @@ public final class TelegramService {
             if (messageId > 0) {
                 editMessage(messageId, result);
             }
+        } else if (data.equals("status")) {
+            answerCallback(callbackId, "已发送服务器状态");
+            sendMessageAsync(buildStatusMessage());
         } else {
             answerCallback(callbackId, "未知操作");
         }
@@ -419,6 +480,10 @@ public final class TelegramService {
         }
         if (lower.startsWith("/reject ") && id > 0) {
             sendMessageAsync(rejectWithMessage(id));
+            return;
+        }
+        if (lower.equals("/status") || lower.equals("/状态")) {
+            sendMessageAsync(buildStatusMessage());
             return;
         }
         String command = parseCommandInvocation(text);
