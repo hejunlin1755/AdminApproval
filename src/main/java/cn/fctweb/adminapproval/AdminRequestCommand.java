@@ -51,13 +51,14 @@ public final class AdminRequestCommand implements CommandExecutor {
             requested = requested.substring(1);
         }
 
-        if (!this.policy.isDangerous(requested)) {
-            player.sendMessage("§a该命令不属于危险命令，无需审批。");
-            return true;
-        }
-
         if (!this.policy.requiresApproval(requested)) {
-            player.sendMessage("§a该命令已在免审批白名单中，直接执行即可。");
+            if (this.policy.matchesBlockedPattern(requested)) {
+                player.sendMessage("§c该命令命中禁用模式，不可直接执行。");
+            } else if (this.policy.isDangerous(requested)) {
+                player.sendMessage("§a该命令已在免审批白名单中，直接执行即可。");
+            } else {
+                player.sendMessage("§a该命令不属于危险命令，无需审批。");
+            }
             return true;
         }
 

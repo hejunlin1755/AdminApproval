@@ -20,14 +20,25 @@ public final class DangerousCommandPolicy {
 
     private final Set<String> dangerousCommands;
     private final Set<String> commandWhitelist;
+    private final Set<String> blockedPatterns;
     private final Supplier<CommandMap> commandMapSupplier;
 
     public DangerousCommandPolicy(Set<String> dangerousCommands, Set<String> initialWhitelist) {
-        this(dangerousCommands, initialWhitelist, DangerousCommandPolicy::resolveCommandMap);
+        this(dangerousCommands, initialWhitelist, Set.of(), DangerousCommandPolicy::resolveCommandMap);
     }
 
     public DangerousCommandPolicy(Set<String> dangerousCommands, Set<String> initialWhitelist,
                                   Supplier<CommandMap> commandMapSupplier) {
+        this(dangerousCommands, initialWhitelist, Set.of(), commandMapSupplier);
+    }
+
+    public DangerousCommandPolicy(Set<String> dangerousCommands, Set<String> initialWhitelist,
+                                  Set<String> blockedPatterns) {
+        this(dangerousCommands, initialWhitelist, blockedPatterns, DangerousCommandPolicy::resolveCommandMap);
+    }
+
+    public DangerousCommandPolicy(Set<String> dangerousCommands, Set<String> initialWhitelist,
+                                  Set<String> blockedPatterns, Supplier<CommandMap> commandMapSupplier) {
         Set<String> dangerous = new LinkedHashSet<>();
         if (dangerousCommands == null || dangerousCommands.isEmpty()) {
             dangerous.addAll(DANGEROUS_DEFAULT);
@@ -40,6 +51,7 @@ public final class DangerousCommandPolicy {
             }
         }
         this.dangerousCommands = Collections.synchronizedSet(dangerous);
+
         this.commandWhitelist = Collections.synchronizedSet(new LinkedHashSet<>());
         if (initialWhitelist != null) {
             for (String entry : initialWhitelist) {
@@ -49,6 +61,17 @@ public final class DangerousCommandPolicy {
                 }
             }
         }
+
+        this.blockedPatterns = Collections.synchronizedSet(new LinkedHashSet<>());
+        if (blockedPatterns != null) {
+            for (String entry : blockedPatterns) {
+                String normalized = normalizePattern(entry);
+                if (!normalized.isEmpty()) {
+                    this.blockedPatterns.add(normalized);
+                }
+            }
+        }
+
         this.commandMapSupplier = commandMapSupplier == null ? DangerousCommandPolicy::resolveCommandMap : commandMapSupplier;
     }
 
@@ -68,6 +91,9 @@ public final class DangerousCommandPolicy {
     }
 
     public boolean requiresApproval(String fullCommandLine) {
+        if (matchesBlockedPattern(fullCommandLine)) {
+            return true;
+        }
         if (!isDangerous(fullCommandLine)) {
             return false;
         }
@@ -84,6 +110,31 @@ public final class DangerousCommandPolicy {
 
         String primary = resolvePrimaryLabel(label);
         return primary == null || !isWhitelisted(primary);
+    }
+
+    /**
+     * 命中禁用模式（如 //set tnt）时返回 true，管理员执行会被拦截并创建审批请求。
+     */
+    public boolean matchesBlockedPattern(String fullCommandLine) {
+        if (fullCommandLine == null || fullCommandLine.isEmpty()) {
+            return false;
+        }
+        String lower = fullCommandLine.toLowerCase(Locale.ROOT);
+        synchronized (this.blockedPatterns) {
+            for (String pattern : this.blockedPatterns) {
+                if (!pattern.isEmpty() && lower.contains(pattern)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String normalizePattern(String pattern) {
+        if (pattern == null) {
+            return "";
+        }
+        return pattern.trim().toLowerCase(Locale.ROOT);
     }
 
     public boolean addWhitelist(String commandLabel) {

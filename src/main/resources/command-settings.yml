@@ -17,3 +17,16 @@ whitelist:
   - fill
   - clone
   - setblock
+
+# 禁用模式：管理员执行命中这些模式的命令时会被拦截并创建审批请求（如 //set tnt）
+blocked-patterns:
+  - "set tnt"
+  - "replace tnt"
+  - "set lava"
+  - "replace lava"
+  - "set bedrock"
+  - "replace bedrock"
+  - "set command_block"
+  - "replace command_block"
+  - "set barrier"
+  - "replace barrier"

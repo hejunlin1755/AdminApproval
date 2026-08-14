@@ -37,7 +37,7 @@ public final class AdminApprovalPlugin extends JavaPlugin {
             initialWhitelist = new LinkedHashSet<>(settings.whitelist());
         }
 
-        this.policy = new DangerousCommandPolicy(settings.dangerous(), initialWhitelist);
+        this.policy = new DangerousCommandPolicy(settings.dangerous(), initialWhitelist, settings.blockedPatterns());
 
         this.requestStore = new RequestStore(500);
         this.requestStore.load(snapshot);

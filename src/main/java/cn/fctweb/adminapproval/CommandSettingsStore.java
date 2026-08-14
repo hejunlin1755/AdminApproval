@@ -23,6 +23,11 @@ public final class CommandSettingsStore {
             "op", "deop", "stop", "restart", "reload", "ban", "pardon", "whitelist", "give", "item", "execute"
     );
     public static final Set<String> DEFAULT_WHITELIST = Set.of("fill", "clone", "setblock");
+    public static final Set<String> DEFAULT_BLOCKED_PATTERNS = Set.of(
+            "set tnt", "replace tnt", "set lava", "replace lava",
+            "set bedrock", "replace bedrock", "set command_block", "replace command_block",
+            "set barrier", "replace barrier"
+    );
 
     private final Path settingsFile;
 
@@ -41,13 +46,13 @@ public final class CommandSettingsStore {
         try (InputStream input = Files.newInputStream(this.settingsFile)) {
             Object loaded = yaml.load(input);
             if (!(loaded instanceof Map<?, ?> root)) {
-                return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST);
+                return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST, DEFAULT_BLOCKED_PATTERNS);
             }
             Set<String> dangerous = parseList(root.get("dangerous"));
             if (dangerous.isEmpty()) {
                 dangerous = DEFAULT_DANGEROUS;
             }
-            return new CommandSettings(dangerous, parseList(root.get("whitelist")));
+            return new CommandSettings(dangerous, parseList(root.get("whitelist")), parseList(root.get("blocked-patterns")));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load " + this.settingsFile, ex);
         }
@@ -57,6 +62,7 @@ public final class CommandSettingsStore {
         Map<String, Object> root = new HashMap<>();
         root.put("dangerous", settings.dangerous().stream().sorted().toList());
         root.put("whitelist", settings.whitelist().stream().sorted().toList());
+        root.put("blocked-patterns", settings.blockedPatterns().stream().sorted().toList());
         writeYaml(root);
     }
 
@@ -81,6 +87,7 @@ public final class CommandSettingsStore {
         Map<String, Object> root = new HashMap<>();
         root.put("dangerous", DEFAULT_DANGEROUS.stream().sorted().toList());
         root.put("whitelist", DEFAULT_WHITELIST.stream().sorted().toList());
+        root.put("blocked-patterns", DEFAULT_BLOCKED_PATTERNS.stream().sorted().toList());
         writeYaml(root);
     }
 

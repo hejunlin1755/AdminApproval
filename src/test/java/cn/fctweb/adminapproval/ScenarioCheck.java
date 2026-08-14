@@ -1,5 +1,6 @@
 package cn.fctweb.adminapproval;
 
+import com.google.gson.JsonObject;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.CommandSender;
@@ -186,6 +187,26 @@ public final class ScenarioCheck {
         check("Telegram: 通知含 申请人:Steve", tgText.contains("申请人:Steve"), tgText);
         check("Telegram: 通知含 命令:give Steve diamond 64", tgText.contains("命令:give Steve diamond 64"), tgText);
         check("Telegram: 提示回复 /approve 1001", tgText.contains("/approve 1001"), tgText);
+
+        // ---------- FAWE 禁用模式（//set tnt 等） ----------
+        DangerousCommandPolicy fawePolicy = new DangerousCommandPolicy(dangerous, whitelist,
+                Set.of("set tnt", "replace tnt", "set lava", "replace lava"), () -> fakeCommandMap);
+        check("FAWE: //set tnt 被拦截需审批", fawePolicy.requiresApproval("//set tnt"), null);
+        check("FAWE: //set tnt 2 也被拦截", fawePolicy.requiresApproval("//set tnt 2"), null);
+        check("FAWE: //replace tnt 被拦截", fawePolicy.requiresApproval("//replace tnt"), null);
+        check("FAWE: //set lava 被拦截", fawePolicy.requiresApproval("//set lava"), null);
+        check("FAWE: //set stone 不受影响", !fawePolicy.requiresApproval("//set stone"), null);
+        check("FAWE: //set grass 不受影响", !fawePolicy.requiresApproval("//set grass"), null);
+        check("FAWE: //pos1 不受影响", !fawePolicy.requiresApproval("//pos1"), null);
+        check("FAWE: 管理员不能直接执行 //set tnt（命中禁用模式）",
+                fawePolicy.matchesBlockedPattern("//set tnt"), null);
+
+        // ---------- Telegram 内联批准/拒绝按钮 ----------
+        JsonObject tgPayload = TelegramService.buildRequestPayload("123", tgRequest);
+        String tgPayloadJson = tgPayload.toString();
+        check("TG按钮: 通知含 inline_keyboard", tgPayloadJson.contains("inline_keyboard"), null);
+        check("TG按钮: 有批准按钮 approve:1001", tgPayloadJson.contains("\"approve:1001\""), tgPayloadJson);
+        check("TG按钮: 有拒绝按钮 reject:1001", tgPayloadJson.contains("\"reject:1001\""), tgPayloadJson);
 
         System.out.println(failures == 0 ? "ALL SCENARIOS PASSED" : failures + " CHECK(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);

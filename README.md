@@ -9,6 +9,7 @@ Minecraft Java Edition 26.1.2 / Paper 26.1.2 服务器插件。
 - **管理员逻辑**：其他 OP 玩家视为管理员，可正常使用 `/fill` `/clone` `/setblock` 等建筑命令；危险命令需要提交审批。
 - **危险命令审批**：默认需审批命令：`op deop stop restart reload ban pardon whitelist give item execute`。管理员执行如 `/give Steve diamond 64` 会被拦截并生成审批请求，腐竹收到「编号:#1001 申请人:Steve 命令:give Steve diamond 64」，批准后由控制台执行并记录审批历史。
 - **命令白名单系统**：服主可通过 `/adminapproval whitelist add|remove|list` 动态管理免审批命令，数据保存在 `plugins/AdminApproval/data.yml`，重启后保留；支持 `/fill` 与 `minecraft:fill` 两种写法。
+- **FAWE 禁用模式**：`command-settings.yml` 的 `blocked-patterns` 可拦截特定危险填充（如 `//set tnt`、`//replace tnt`），命中时自动创建审批请求，管理员不能直接执行；`//set stone`、`//set grass` 等正常建筑不受影响。
 - **防绕过**：管理员不能批准自己的请求；`/minecraft:give` 前缀无法绕过拦截；只有腐竹 UUID 能执行 `/adminapproval whitelist`。
 - **配置免改代码**：`command-settings.yml` 可调整 `dangerous`（危险命令）与 `whitelist`（初始免审批命令）列表。
 
@@ -43,10 +44,10 @@ telegram:
 编号:#1001
 申请人:Steve
 命令:give Steve diamond 64
-回复 /approve 1001 批准，/reject 1001 拒绝
+点击下方按钮处理，或回复 /approve 1001 / /reject 1001
 ```
 
-你在聊天里直接回复 `/approve 1001` 或 `/reject 1001` 即可处理（插件只接受配置的 `chat-id` 发来的指令，防他人冒充），批准后由服务器控制台执行命令并通知游戏内申请人。
+审批消息自带 **「✅ 批准 / ❌ 拒绝」内联按钮**，点按钮即可处理；也可以直接回复 `/approve 1001` / `/reject 1001`。插件只接受配置的 `chat-id` 发来的指令/按钮回调，防他人冒充；批准后由服务器控制台执行命令并通知游戏内申请人，按钮消息会同步更新为处理结果。
 
 获取方式：
 - Bot Token：Telegram 里找 **@BotFather**，`/newbot` 创建机器人后拿到 token。
@@ -66,6 +67,19 @@ whitelist:
   - fill
   - clone
   - setblock
+
+# 禁用模式：命中即拦截并创建审批请求（如 //set tnt）
+blocked-patterns:
+  - "set tnt"
+  - "replace tnt"
+  - "set lava"
+  - "replace lava"
+  - "set bedrock"
+  - "replace bedrock"
+  - "set command_block"
+  - "replace command_block"
+  - "set barrier"
+  - "replace barrier"
 ```
 
 ### plugins/AdminApproval/data.yml
