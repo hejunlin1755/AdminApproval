@@ -17,6 +17,7 @@ public final class AdminApprovalPlugin extends JavaPlugin {
     private AccessControl accessControl;
     private TelegramService telegramService;
     private ConsoleWatchService consoleWatchService;
+    private TabNameService tabNameService;
 
     @Override
     public void onEnable() {
@@ -58,8 +59,13 @@ public final class AdminApprovalPlugin extends JavaPlugin {
                         settings.notifyAllAdminCommands(), settings.notifyPlayerCommands(),
                         settings.sensitiveCommands(), settings.sensitiveKeywords()), this);
 
+        this.tabNameService = new TabNameService(
+                this.accessControl, settings.tabNameColorEnabled(),
+                settings.tabNameOwnerColor(), settings.tabNameAdminColor());
+
         this.getServer().getPluginManager().registerEvents(
-                new PlayerActivityListener(this.telegramService, settings.notifyJoinLeave()), this);
+                new PlayerActivityListener(this.telegramService, settings.notifyJoinLeave(),
+                        this.tabNameService, Bukkit::getOnlinePlayers), this);
 
         List<Pattern> antiCheatPatterns = new java.util.ArrayList<>();
         for (String pattern : settings.antiCheatPatterns()) {
@@ -86,6 +92,7 @@ public final class AdminApprovalPlugin extends JavaPlugin {
         if (this.telegramService.isEnabled()) {
             this.telegramService.start();
         }
+        this.tabNameService.applyAll();
         this.getLogger().info("AdminApproval 已启用，服主数量: " + this.accessControl.ownerUuids().size());
     }
 

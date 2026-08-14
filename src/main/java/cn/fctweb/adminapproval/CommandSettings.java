@@ -6,13 +6,16 @@ public record CommandSettings(Set<String> dangerous, Set<String> whitelist, Set<
                               boolean notifyAllAdminCommands, Set<String> sensitiveCommands,
                               Set<String> sensitiveKeywords, boolean notifyPlayerCommands,
                               boolean notifyJoinLeave, boolean notifyAntiCheat,
-                              Set<String> antiCheatPatterns) {
+                              Set<String> antiCheatPatterns, boolean tabNameColorEnabled,
+                              String tabNameOwnerColor, String tabNameAdminColor) {
 
     public CommandSettings(Set<String> dangerous, Set<String> whitelist) {
-        this(dangerous, whitelist, Set.of(), false, Set.of(), Set.of(), false, false, false, Set.of());
+        this(dangerous, whitelist, Set.of(), false, Set.of(), Set.of(), false, false, false, Set.of(),
+                false, "GOLD", "WHITE");
     }
 
     public CommandSettings(Set<String> dangerous, Set<String> whitelist, Set<String> blockedPatterns) {
-        this(dangerous, whitelist, blockedPatterns, false, Set.of(), Set.of(), false, false, false, Set.of());
+        this(dangerous, whitelist, blockedPatterns, false, Set.of(), Set.of(), false, false, false, Set.of(),
+                false, "GOLD", "WHITE");
     }
 }

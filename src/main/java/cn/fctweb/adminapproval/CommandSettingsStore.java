@@ -63,7 +63,7 @@ public final class CommandSettingsStore {
             if (!(loaded instanceof Map<?, ?> root)) {
                 return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST, DEFAULT_BLOCKED_PATTERNS,
                         false, DEFAULT_SENSITIVE_COMMANDS, DEFAULT_SENSITIVE_KEYWORDS, false, false,
-                        false, DEFAULT_ANTICHEAT_PATTERNS);
+                        false, DEFAULT_ANTICHEAT_PATTERNS, false, "GOLD", "WHITE");
             }
             Set<String> dangerous = parseList(root.get("dangerous"));
             if (dangerous.isEmpty()) {
@@ -87,7 +87,10 @@ public final class CommandSettingsStore {
                     readBoolean(root.get("notify-player-commands"), false),
                     readBoolean(root.get("notify-join-leave"), false),
                     readBoolean(root.get("notify-anticheat"), false),
-                    parseList(root.get("anticheat-patterns"))
+                    parseList(root.get("anticheat-patterns")),
+                    readBoolean(root.get("tab-name-color-enabled"), false),
+                    readString(root.get("tab-name-owner-color"), "GOLD"),
+                    readString(root.get("tab-name-admin-color"), "WHITE")
             );
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load " + this.settingsFile, ex);
@@ -106,6 +109,9 @@ public final class CommandSettingsStore {
         root.put("notify-join-leave", settings.notifyJoinLeave());
         root.put("notify-anticheat", settings.notifyAntiCheat());
         root.put("anticheat-patterns", settings.antiCheatPatterns().stream().sorted().toList());
+        root.put("tab-name-color-enabled", settings.tabNameColorEnabled());
+        root.put("tab-name-owner-color", settings.tabNameOwnerColor());
+        root.put("tab-name-admin-color", settings.tabNameAdminColor());
         writeYaml(root);
     }
 
@@ -138,7 +144,18 @@ public final class CommandSettingsStore {
         root.put("notify-join-leave", false);
         root.put("notify-anticheat", false);
         root.put("anticheat-patterns", DEFAULT_ANTICHEAT_PATTERNS.stream().sorted().toList());
+        root.put("tab-name-color-enabled", false);
+        root.put("tab-name-owner-color", "GOLD");
+        root.put("tab-name-admin-color", "WHITE");
         writeYaml(root);
+    }
+
+    private String readString(Object value, String defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? defaultValue : text;
     }
 
     private boolean readBoolean(Object value, boolean defaultValue) {

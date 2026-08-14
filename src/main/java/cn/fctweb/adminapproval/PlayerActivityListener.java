@@ -17,22 +17,36 @@ import java.util.function.Supplier;
 public final class PlayerActivityListener implements Listener {
     private final TelegramService telegramService;
     private final boolean notifyJoinLeave;
+    private final TabNameService tabNameService;
     private final Supplier<Collection<? extends Player>> onlinePlayers;
 
     public PlayerActivityListener(TelegramService telegramService, boolean notifyJoinLeave) {
-        this(telegramService, notifyJoinLeave, Bukkit::getOnlinePlayers);
+        this(telegramService, notifyJoinLeave, null, Bukkit::getOnlinePlayers);
     }
 
     public PlayerActivityListener(TelegramService telegramService, boolean notifyJoinLeave,
                                   Supplier<Collection<? extends Player>> onlinePlayers) {
+        this(telegramService, notifyJoinLeave, null, onlinePlayers);
+    }
+
+    public PlayerActivityListener(TelegramService telegramService, boolean notifyJoinLeave,
+                                  TabNameService tabNameService,
+                                  Supplier<Collection<? extends Player>> onlinePlayers) {
         this.telegramService = telegramService == null ? TelegramService.disabled() : telegramService;
         this.notifyJoinLeave = notifyJoinLeave;
+        this.tabNameService = tabNameService;
         this.onlinePlayers = onlinePlayers == null ? Bukkit::getOnlinePlayers : onlinePlayers;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!this.notifyJoinLeave || event.getPlayer() == null) {
+        if (event.getPlayer() == null) {
+            return;
+        }
+        if (this.tabNameService != null) {
+            this.tabNameService.apply(event.getPlayer());
+        }
+        if (!this.notifyJoinLeave) {
             return;
         }
         this.telegramService.notifyJoinLeave(true, event.getPlayer().getName(), this.onlinePlayers.get().size());
