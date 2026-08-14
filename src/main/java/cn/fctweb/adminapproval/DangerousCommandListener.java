@@ -15,17 +15,30 @@ public final class DangerousCommandListener implements Listener {
     private final RequestStore requestStore;
     private final AccessControl accessControl;
     private final Supplier<Collection<? extends Player>> onlinePlayers;
+    private final TelegramService telegramService;
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl) {
-        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers);
+        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, TelegramService.disabled());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     Supplier<Collection<? extends Player>> onlinePlayers) {
+        this(policy, requestStore, accessControl, onlinePlayers, TelegramService.disabled());
+    }
+
+    public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                                    TelegramService telegramService) {
+        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService);
+    }
+
+    public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                                    Supplier<Collection<? extends Player>> onlinePlayers,
+                                    TelegramService telegramService) {
         this.policy = policy;
         this.requestStore = requestStore;
         this.accessControl = accessControl;
         this.onlinePlayers = onlinePlayers == null ? Bukkit::getOnlinePlayers : onlinePlayers;
+        this.telegramService = telegramService == null ? TelegramService.disabled() : telegramService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -54,6 +67,7 @@ public final class DangerousCommandListener implements Listener {
 
         ApprovalRequest request = this.requestStore.create(player.getUniqueId(), player.getName(), requested);
         player.sendMessage("§a命令已被拦截并创建审批请求 #" + request.id() + "，等待腐竹处理。");
+        this.telegramService.notifyApprovalRequest(request);
 
         this.onlinePlayers.get().stream()
                 .filter(this.accessControl::isOwner)

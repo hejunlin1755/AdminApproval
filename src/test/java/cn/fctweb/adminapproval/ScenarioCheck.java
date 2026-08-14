@@ -163,6 +163,30 @@ public final class ScenarioCheck {
             deleteRecursively(tempDir);
         }
 
+        // ---------- Telegram：配置往返 + 通知格式 ----------
+        Path telegramDir = Files.createTempDirectory("adminapproval-telegram");
+        try {
+            ApprovalConfigStore configStore = new ApprovalConfigStore(telegramDir.resolve("config.yml"));
+            TelegramSettings tg = new TelegramSettings(true, "123456:TESTTOKEN", "987654321");
+            configStore.save(new ApprovalConfig(Set.of(ownerUuid), tg));
+            ApprovalConfig loadedConfig = configStore.load();
+            check("Telegram: 配置往返一致",
+                    loadedConfig.telegram().enabled()
+                            && "123456:TESTTOKEN".equals(loadedConfig.telegram().botToken())
+                            && "987654321".equals(loadedConfig.telegram().chatId()),
+                    loadedConfig.telegram().toString());
+        } finally {
+            deleteRecursively(telegramDir);
+        }
+
+        ApprovalRequest tgRequest = new ApprovalRequest(1001, adminUuid, "Steve", "give Steve diamond 64",
+                java.time.Instant.now());
+        String tgText = TelegramService.formatApprovalRequest(tgRequest);
+        check("Telegram: 通知含 编号:#1001", tgText.contains("编号:#1001"), tgText);
+        check("Telegram: 通知含 申请人:Steve", tgText.contains("申请人:Steve"), tgText);
+        check("Telegram: 通知含 命令:give Steve diamond 64", tgText.contains("命令:give Steve diamond 64"), tgText);
+        check("Telegram: 提示回复 /approve 1001", tgText.contains("/approve 1001"), tgText);
+
         System.out.println(failures == 0 ? "ALL SCENARIOS PASSED" : failures + " CHECK(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

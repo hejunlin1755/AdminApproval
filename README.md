@@ -27,7 +27,32 @@ mvn package
 ```yaml
 owner-uuid:
   - "填写服主UUID"   # 只有这里的 UUID 才是腐竹
+
+telegram:
+  enabled: false           # 是否启用 Telegram Bot 审批通知
+  bot-token: "填写BotToken" # 在 @BotFather 创建的 Bot Token
+  chat-id: "填写接收消息的Telegram用户/群ID"
 ```
+
+## Telegram Bot 审批（可选）
+
+启用后，管理员提交的危险命令审批请求会推送到你的 Telegram：
+
+```text
+[AdminApproval] 新的审批请求
+编号:#1001
+申请人:Steve
+命令:give Steve diamond 64
+回复 /approve 1001 批准，/reject 1001 拒绝
+```
+
+你在聊天里直接回复 `/approve 1001` 或 `/reject 1001` 即可处理（插件只接受配置的 `chat-id` 发来的指令，防他人冒充），批准后由服务器控制台执行命令并通知游戏内申请人。
+
+获取方式：
+- Bot Token：Telegram 里找 **@BotFather**，`/newbot` 创建机器人后拿到 token。
+- Chat ID：把你的机器人拉进私聊发一条消息，或给机器人发消息后，用任意 bot 查询该聊天 ID（或使用 `@userinfobot`）；群聊则把 bot 拉进群后取群 ID（负数）。
+
+> 注意：插件使用长轮询（getUpdates）接收指令，同一 bot token 同时只能有一个客户端在轮询。
 
 ### plugins/AdminApproval/command-settings.yml
 

@@ -35,9 +35,9 @@ public final class ApprovalConfigStore {
         try (InputStream input = Files.newInputStream(this.configFile)) {
             Object loaded = yaml.load(input);
             if (!(loaded instanceof Map<?, ?> root)) {
-                return new ApprovalConfig(Set.of());
+                return new ApprovalConfig(Set.of(), TelegramSettings.disabled());
             }
-            return new ApprovalConfig(parseOwners(root.get("owner-uuid")));
+            return new ApprovalConfig(parseOwners(root.get("owner-uuid")), parseTelegram(root.get("telegram")));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load " + this.configFile, ex);
         }
@@ -47,6 +47,7 @@ public final class ApprovalConfigStore {
         Map<String, Object> root = new HashMap<>();
         List<String> owners = config.ownerUuids().stream().map(UUID::toString).sorted().toList();
         root.put("owner-uuid", owners);
+        root.put("telegram", telegramMap(config.telegram()));
         writeYaml(root);
     }
 
@@ -68,9 +69,34 @@ public final class ApprovalConfigStore {
         return Set.copyOf(owners);
     }
 
+    private TelegramSettings parseTelegram(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            return TelegramSettings.disabled();
+        }
+        boolean enabled = readBoolean(map.get("enabled"), false);
+        String botToken = readString(map.get("bot-token"));
+        String chatId = readString(map.get("chat-id"));
+        return new TelegramSettings(enabled, botToken, chatId);
+    }
+
+    private Map<String, Object> telegramMap(TelegramSettings telegram) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("enabled", telegram.enabled());
+        map.put("bot-token", telegram.botToken());
+        map.put("chat-id", telegram.chatId());
+        return map;
+    }
+
     private void writeDefaultFile() {
         Map<String, Object> root = new HashMap<>();
         root.put("owner-uuid", List.of("填写服主UUID"));
+
+        Map<String, Object> telegram = new HashMap<>();
+        telegram.put("enabled", false);
+        telegram.put("bot-token", "填写BotToken");
+        telegram.put("chat-id", "填写接收消息的Telegram用户/群ID");
+        root.put("telegram", telegram);
+
         writeYaml(root);
     }
 
@@ -91,5 +117,19 @@ public final class ApprovalConfigStore {
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to write " + this.configFile, ex);
         }
+    }
+
+    private boolean readBoolean(Object value, boolean defaultValue) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof String text) {
+            return Boolean.parseBoolean(text);
+        }
+        return defaultValue;
+    }
+
+    private String readString(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
     }
 }

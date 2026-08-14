@@ -1,5 +1,6 @@
 package cn.fctweb.adminapproval;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -13,6 +14,7 @@ public final class AdminApprovalPlugin extends JavaPlugin {
     private DataFileStore dataFileStore;
     private DangerousCommandPolicy policy;
     private AccessControl accessControl;
+    private TelegramService telegramService;
 
     @Override
     public void onEnable() {
@@ -41,10 +43,18 @@ public final class AdminApprovalPlugin extends JavaPlugin {
         this.requestStore.load(snapshot);
         this.requestStore.setSaveHook(this::saveData);
 
-        this.getServer().getPluginManager().registerEvents(
-                new DangerousCommandListener(this.policy, this.requestStore, this.accessControl), this);
+        this.telegramService = new TelegramService(
+                config.telegram(),
+                this.requestStore,
+                commandLine -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine),
+                Bukkit::getPlayer,
+                this.getLogger()
+        );
 
-        registerRequiredCommand("adminrequest", new AdminRequestCommand(this.policy, this.requestStore, this.accessControl));
+        this.getServer().getPluginManager().registerEvents(
+                new DangerousCommandListener(this.policy, this.requestStore, this.accessControl, this.telegramService), this);
+
+        registerRequiredCommand("adminrequest", new AdminRequestCommand(this.policy, this.requestStore, this.accessControl, this.telegramService));
         registerRequiredCommand("adminapprove", new AdminApproveCommand(this.requestStore, this.accessControl));
         registerRequiredCommand("adminreject", new AdminRejectCommand(this.requestStore, this.accessControl));
         registerRequiredCommand("adminrequests", new AdminRequestsCommand(this.requestStore, this.accessControl));
@@ -52,11 +62,17 @@ public final class AdminApprovalPlugin extends JavaPlugin {
         registerRequiredCommand("adminapproval", new AdminApprovalCommand(this.accessControl, this.policy, this::saveData));
 
         saveData();
+        if (this.telegramService.isEnabled()) {
+            this.telegramService.start();
+        }
         this.getLogger().info("AdminApproval 已启用，服主数量: " + this.accessControl.ownerUuids().size());
     }
 
     @Override
     public void onDisable() {
+        if (this.telegramService != null) {
+            this.telegramService.stop();
+        }
         saveData();
     }
 

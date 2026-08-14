@@ -2,3 +2,10 @@
 # 腐竹拥有所有命令直接执行、管理审批请求、管理白名单、绕过所有限制的权限
 owner-uuid:
   - "填写服主UUID"
+
+# Telegram Bot 通知：开启后，新的审批请求会推送到你的 Telegram，
+# 你可以在聊天里直接回复 /approve <编号> 或 /reject <编号> 来处理
+telegram:
+  enabled: false
+  bot-token: "填写BotToken"
+  chat-id: "填写接收消息的Telegram用户/群ID"

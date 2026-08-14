@@ -10,11 +10,18 @@ public final class AdminRequestCommand implements CommandExecutor {
     private final DangerousCommandPolicy policy;
     private final RequestStore requestStore;
     private final AccessControl accessControl;
+    private final TelegramService telegramService;
 
     public AdminRequestCommand(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl) {
+        this(policy, requestStore, accessControl, TelegramService.disabled());
+    }
+
+    public AdminRequestCommand(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                               TelegramService telegramService) {
         this.policy = policy;
         this.requestStore = requestStore;
         this.accessControl = accessControl;
+        this.telegramService = telegramService == null ? TelegramService.disabled() : telegramService;
     }
 
     @Override
@@ -56,6 +63,7 @@ public final class AdminRequestCommand implements CommandExecutor {
 
         ApprovalRequest request = this.requestStore.create(player.getUniqueId(), player.getName(), requested);
         player.sendMessage("§a审批请求已提交，等待腐竹处理。编号:#" + request.id());
+        this.telegramService.notifyApprovalRequest(request);
 
         Bukkit.getOnlinePlayers().stream()
                 .filter(this.accessControl::isOwner)
