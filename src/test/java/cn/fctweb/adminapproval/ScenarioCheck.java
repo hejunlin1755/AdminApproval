@@ -208,6 +208,28 @@ public final class ScenarioCheck {
         check("TG按钮: 有批准按钮 approve:1001", tgPayloadJson.contains("\"approve:1001\""), tgPayloadJson);
         check("TG按钮: 有拒绝按钮 reject:1001", tgPayloadJson.contains("\"reject:1001\""), tgPayloadJson);
 
+        // ---------- 管理员命令上报打码（绝不泄露密码） ----------
+        Set<String> sensitiveCommands = Set.of("login", "authme", "changepassword", "register");
+        Set<String> sensitiveKeywords = Set.of("password", "pass", "token", "密码");
+        check("上报: /login 密码 只显示命令名",
+                "/login ***".equals(TelegramService.redactCommand("/login hunter2", sensitiveCommands, sensitiveKeywords)),
+                TelegramService.redactCommand("/login hunter2", sensitiveCommands, sensitiveKeywords));
+        check("上报: /changepassword 旧密码 新密码 全部打码",
+                "/changepassword ***".equals(TelegramService.redactCommand(
+                        "/changepassword oldpass newpass", sensitiveCommands, sensitiveKeywords)),
+                TelegramService.redactCommand("/changepassword oldpass newpass", sensitiveCommands, sensitiveKeywords));
+        check("上报: /authme register 玩家 密码 打码",
+                "/authme ***".equals(TelegramService.redactCommand(
+                        "/authme register Steve hunter2", sensitiveCommands, sensitiveKeywords)),
+                TelegramService.redactCommand("/authme register Steve hunter2", sensitiveCommands, sensitiveKeywords));
+        check("上报: 普通命令完整显示",
+                "//set stone".equals(TelegramService.redactCommand("//set stone", sensitiveCommands, sensitiveKeywords)),
+                TelegramService.redactCommand("//set stone", sensitiveCommands, sensitiveKeywords));
+        check("上报: 关键词后的参数打码",
+                "/custom --pass ***".equals(TelegramService.redactCommand(
+                        "/custom --pass abc", sensitiveCommands, sensitiveKeywords)),
+                TelegramService.redactCommand("/custom --pass abc", sensitiveCommands, sensitiveKeywords));
+
         System.out.println(failures == 0 ? "ALL SCENARIOS PASSED" : failures + " CHECK(S) FAILED");
         System.exit(failures == 0 ? 0 : 1);
     }

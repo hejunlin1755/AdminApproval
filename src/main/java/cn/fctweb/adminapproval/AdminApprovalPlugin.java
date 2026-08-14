@@ -52,7 +52,8 @@ public final class AdminApprovalPlugin extends JavaPlugin {
         );
 
         this.getServer().getPluginManager().registerEvents(
-                new DangerousCommandListener(this.policy, this.requestStore, this.accessControl, this.telegramService), this);
+                new DangerousCommandListener(this.policy, this.requestStore, this.accessControl, this.telegramService,
+                        settings.notifyAllAdminCommands(), settings.sensitiveCommands(), settings.sensitiveKeywords()), this);
 
         registerRequiredCommand("adminrequest", new AdminRequestCommand(this.policy, this.requestStore, this.accessControl, this.telegramService));
         registerRequiredCommand("adminapprove", new AdminApproveCommand(this.requestStore, this.accessControl));

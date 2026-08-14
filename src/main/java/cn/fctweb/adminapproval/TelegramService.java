@@ -14,6 +14,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.logging.Logger;
@@ -88,6 +89,16 @@ public final class TelegramService {
         sendJsonAsync("sendMessage", buildRequestPayload(this.chatId, request));
     }
 
+    /**
+     * 管理员普通命令上报（不含密码等敏感参数，已在 redactCommand 中打码）。
+     */
+    public void notifyAdminCommand(String playerName, String redactedCommand) {
+        if (!this.enabled || playerName == null || redactedCommand == null) {
+            return;
+        }
+        sendMessageAsync("🔔 管理员命令\n玩家: " + playerName + "\n命令: " + redactedCommand);
+    }
+
     public static String formatApprovalRequest(ApprovalRequest request) {
         return "[AdminApproval] 新的审批请求\n"
                 + "编号:#" + request.id() + "\n"
@@ -121,6 +132,78 @@ public final class TelegramService {
         b.addProperty("text", text);
         b.addProperty("callback_data", callbackData);
         return b;
+    }
+
+    /**
+     * 打码命令中的敏感内容：命中 sensitive-commands 的整条命令只显示命令名；
+     * 命中 sensitive-keywords 时，关键词后面的参数替换为 ***。
+     */
+    public static String redactCommand(String commandLine, Set<String> sensitiveCommands,
+                                       Set<String> sensitiveKeywords) {
+        if (commandLine == null) {
+            return "";
+        }
+        String trimmed = commandLine.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+
+        String label = labelOf(trimmed);
+        if (label != null && containsAny(sensitiveCommands, label)) {
+            return "/" + label + " ***";
+        }
+
+        String[] tokens = trimmed.split("\\s+");
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < tokens.length; i++) {
+            if (i > 0) {
+                result.append(' ');
+            }
+            result.append(tokens[i]);
+            if (i + 1 < tokens.length && containsAnyKeyword(sensitiveKeywords, tokens[i])) {
+                result.append(" ***");
+                i++;
+            }
+        }
+        return result.toString();
+    }
+
+    private static String labelOf(String commandLine) {
+        String value = commandLine.trim();
+        while (!value.isEmpty() && value.charAt(0) == '/') {
+            value = value.substring(1);
+        }
+        if (value.isEmpty()) {
+            return null;
+        }
+        int space = value.indexOf(' ');
+        return space == -1 ? value.toLowerCase(Locale.ROOT) : value.substring(0, space).toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean containsAny(Set<String> sensitiveCommands, String label) {
+        if (sensitiveCommands == null || label == null) {
+            return false;
+        }
+        for (String entry : sensitiveCommands) {
+            if (label.equals(entry.trim().toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsAnyKeyword(Set<String> sensitiveKeywords, String token) {
+        if (sensitiveKeywords == null || token == null) {
+            return false;
+        }
+        String lower = token.toLowerCase(Locale.ROOT);
+        for (String entry : sensitiveKeywords) {
+            String keyword = entry.trim().toLowerCase(Locale.ROOT);
+            if (!keyword.isEmpty() && lower.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void sendJsonAsync(String method, JsonObject payload) {

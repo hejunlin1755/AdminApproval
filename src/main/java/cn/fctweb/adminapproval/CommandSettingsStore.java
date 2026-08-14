@@ -28,6 +28,13 @@ public final class CommandSettingsStore {
             "set bedrock", "replace bedrock", "set command_block", "replace command_block",
             "set barrier", "replace barrier"
     );
+    public static final Set<String> DEFAULT_SENSITIVE_COMMANDS = Set.of(
+            "login", "register", "changepassword", "changeemail", "email",
+            "authme", "unregister", "password", "pass", "token", "code", "recovery"
+    );
+    public static final Set<String> DEFAULT_SENSITIVE_KEYWORDS = Set.of(
+            "password", "pass", "token", "密码", "密钥"
+    );
 
     private final Path settingsFile;
 
@@ -46,13 +53,29 @@ public final class CommandSettingsStore {
         try (InputStream input = Files.newInputStream(this.settingsFile)) {
             Object loaded = yaml.load(input);
             if (!(loaded instanceof Map<?, ?> root)) {
-                return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST, DEFAULT_BLOCKED_PATTERNS);
+                return new CommandSettings(DEFAULT_DANGEROUS, DEFAULT_WHITELIST, DEFAULT_BLOCKED_PATTERNS,
+                        false, DEFAULT_SENSITIVE_COMMANDS, DEFAULT_SENSITIVE_KEYWORDS);
             }
             Set<String> dangerous = parseList(root.get("dangerous"));
             if (dangerous.isEmpty()) {
                 dangerous = DEFAULT_DANGEROUS;
             }
-            return new CommandSettings(dangerous, parseList(root.get("whitelist")), parseList(root.get("blocked-patterns")));
+            Set<String> sensitiveCommands = parseList(root.get("sensitive-commands"));
+            if (sensitiveCommands.isEmpty()) {
+                sensitiveCommands = DEFAULT_SENSITIVE_COMMANDS;
+            }
+            Set<String> sensitiveKeywords = parseList(root.get("sensitive-keywords"));
+            if (sensitiveKeywords.isEmpty()) {
+                sensitiveKeywords = DEFAULT_SENSITIVE_KEYWORDS;
+            }
+            return new CommandSettings(
+                    dangerous,
+                    parseList(root.get("whitelist")),
+                    parseList(root.get("blocked-patterns")),
+                    readBoolean(root.get("notify-all-admin-commands"), false),
+                    sensitiveCommands,
+                    sensitiveKeywords
+            );
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to load " + this.settingsFile, ex);
         }
@@ -63,6 +86,9 @@ public final class CommandSettingsStore {
         root.put("dangerous", settings.dangerous().stream().sorted().toList());
         root.put("whitelist", settings.whitelist().stream().sorted().toList());
         root.put("blocked-patterns", settings.blockedPatterns().stream().sorted().toList());
+        root.put("notify-all-admin-commands", settings.notifyAllAdminCommands());
+        root.put("sensitive-commands", settings.sensitiveCommands().stream().sorted().toList());
+        root.put("sensitive-keywords", settings.sensitiveKeywords().stream().sorted().toList());
         writeYaml(root);
     }
 
@@ -88,7 +114,20 @@ public final class CommandSettingsStore {
         root.put("dangerous", DEFAULT_DANGEROUS.stream().sorted().toList());
         root.put("whitelist", DEFAULT_WHITELIST.stream().sorted().toList());
         root.put("blocked-patterns", DEFAULT_BLOCKED_PATTERNS.stream().sorted().toList());
+        root.put("notify-all-admin-commands", false);
+        root.put("sensitive-commands", DEFAULT_SENSITIVE_COMMANDS.stream().sorted().toList());
+        root.put("sensitive-keywords", DEFAULT_SENSITIVE_KEYWORDS.stream().sorted().toList());
         writeYaml(root);
+    }
+
+    private boolean readBoolean(Object value, boolean defaultValue) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof String text) {
+            return Boolean.parseBoolean(text);
+        }
+        return defaultValue;
     }
 
     private void writeYaml(Map<String, Object> root) {

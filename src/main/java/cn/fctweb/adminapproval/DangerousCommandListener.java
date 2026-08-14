@@ -8,6 +8,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import java.util.Collection;
+import java.util.Locale;
+import java.util.Set;
 import java.util.function.Supplier;
 
 public final class DangerousCommandListener implements Listener {
@@ -16,35 +18,60 @@ public final class DangerousCommandListener implements Listener {
     private final AccessControl accessControl;
     private final Supplier<Collection<? extends Player>> onlinePlayers;
     private final TelegramService telegramService;
+    private final boolean notifyAllAdminCommands;
+    private final Set<String> sensitiveCommands;
+    private final Set<String> sensitiveKeywords;
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl) {
-        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, TelegramService.disabled());
+        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, TelegramService.disabled(),
+                false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     Supplier<Collection<? extends Player>> onlinePlayers) {
-        this(policy, requestStore, accessControl, onlinePlayers, TelegramService.disabled());
+        this(policy, requestStore, accessControl, onlinePlayers, TelegramService.disabled(),
+                false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     TelegramService telegramService) {
-        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService);
+        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService,
+                false, Set.of(), Set.of());
     }
 
     public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
                                     Supplier<Collection<? extends Player>> onlinePlayers,
                                     TelegramService telegramService) {
+        this(policy, requestStore, accessControl, onlinePlayers, telegramService,
+                false, Set.of(), Set.of());
+    }
+
+    public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                                    TelegramService telegramService, boolean notifyAllAdminCommands,
+                                    Set<String> sensitiveCommands, Set<String> sensitiveKeywords) {
+        this(policy, requestStore, accessControl, Bukkit::getOnlinePlayers, telegramService,
+                notifyAllAdminCommands, sensitiveCommands, sensitiveKeywords);
+    }
+
+    public DangerousCommandListener(DangerousCommandPolicy policy, RequestStore requestStore, AccessControl accessControl,
+                                    Supplier<Collection<? extends Player>> onlinePlayers,
+                                    TelegramService telegramService, boolean notifyAllAdminCommands,
+                                    Set<String> sensitiveCommands, Set<String> sensitiveKeywords) {
         this.policy = policy;
         this.requestStore = requestStore;
         this.accessControl = accessControl;
         this.onlinePlayers = onlinePlayers == null ? Bukkit::getOnlinePlayers : onlinePlayers;
         this.telegramService = telegramService == null ? TelegramService.disabled() : telegramService;
+        this.notifyAllAdminCommands = notifyAllAdminCommands;
+        this.sensitiveCommands = sensitiveCommands == null ? Set.of() : sensitiveCommands;
+        this.sensitiveKeywords = sensitiveKeywords == null ? Set.of() : sensitiveKeywords;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         String message = event.getMessage() == null ? "" : event.getMessage();
         if (!this.policy.requiresApproval(message)) {
+            notifyAdminCommand(event, message);
             return;
         }
 
@@ -77,5 +104,38 @@ public final class DangerousCommandListener implements Listener {
                     owner.sendMessage("§e申请人:" + request.requesterName());
                     owner.sendMessage("§e命令:" + request.command());
                 });
+    }
+
+    private void notifyAdminCommand(PlayerCommandPreprocessEvent event, String message) {
+        if (!this.notifyAllAdminCommands) {
+            return;
+        }
+        Player player = event.getPlayer();
+        if (!this.accessControl.isAdmin(player) || this.accessControl.isOwner(player)) {
+            return;
+        }
+        String label = labelOf(message);
+        if (label != null && (label.equals("adminrequest") || label.equals("adminapprove")
+                || label.equals("adminreject") || label.equals("adminrequests")
+                || label.equals("adminhistory") || label.equals("adminapproval"))) {
+            return;
+        }
+        String redacted = TelegramService.redactCommand(message, this.sensitiveCommands, this.sensitiveKeywords);
+        this.telegramService.notifyAdminCommand(player.getName(), redacted);
+    }
+
+    private String labelOf(String commandLine) {
+        if (commandLine == null) {
+            return null;
+        }
+        String value = commandLine.trim();
+        while (!value.isEmpty() && value.charAt(0) == '/') {
+            value = value.substring(1);
+        }
+        if (value.isEmpty()) {
+            return null;
+        }
+        int space = value.indexOf(' ');
+        return space == -1 ? value.toLowerCase(Locale.ROOT) : value.substring(0, space).toLowerCase(Locale.ROOT);
     }
 }

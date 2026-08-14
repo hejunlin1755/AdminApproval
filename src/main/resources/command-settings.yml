@@ -30,3 +30,29 @@ blocked-patterns:
   - "replace command_block"
   - "set barrier"
   - "replace barrier"
+
+# 是否把管理员执行的每条命令都推送到 Telegram（默认关闭）
+notify-all-admin-commands: false
+
+# 这些命令的完整参数会被打码（如 /login 密码、/changepassword 旧密码 新密码）
+sensitive-commands:
+  - login
+  - register
+  - changepassword
+  - changeemail
+  - email
+  - authme
+  - unregister
+  - password
+  - pass
+  - token
+  - code
+  - recovery
+
+# 命令里出现这些关键词时，后面的参数也会被打码
+sensitive-keywords:
+  - password
+  - pass
+  - token
+  - 密码
+  - 密钥
