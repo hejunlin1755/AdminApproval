@@ -354,7 +354,7 @@ public final class TelegramService {
                 }
             } catch (InterruptedException ie) {
                 return;
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
                 String message = ex.getMessage() == null ? "" : ex.getMessage();
                 if (message.contains("409") || message.contains("Conflict")) {
                     conflictStreak++;
@@ -364,7 +364,7 @@ public final class TelegramService {
                     }
                 } else {
                     conflictStreak = 0;
-                    this.logger.warning("Telegram getUpdates 失败: " + message);
+                    this.logger.warning("Telegram 轮询异常（已忽略并继续）: " + ex);
                 }
                 sleepSafe(3000);
             }
@@ -525,7 +525,13 @@ public final class TelegramService {
             return "找不到待审批请求 #" + id;
         }
         this.requestStore.removePending(id);
-        boolean success = this.dispatcher.apply(request.command());
+        boolean success;
+        try {
+            success = this.dispatcher.apply(request.command());
+        } catch (Throwable ex) {
+            success = false;
+            this.logger.warning("批准执行命令失败: " + ex);
+        }
         this.requestStore.recordApproved(request, "Telegram", success);
 
         String result = "✅ 审批请求 #" + id
